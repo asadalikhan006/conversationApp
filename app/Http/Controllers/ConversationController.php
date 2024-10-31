@@ -23,12 +23,12 @@ class ConversationController extends Controller
             ], 401);
         }
 
-        $token = $this->createToken($request->user_id);
+        $tokens = $this->createToken($request->user_id);
 
         return response()->json([
             'status' => 200,
             'message' => 'Token generated',
-            'token' => $token,
+            'token' => $tokens,
         ], 200);
     }
 
