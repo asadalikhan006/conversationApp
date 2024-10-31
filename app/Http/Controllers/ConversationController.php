@@ -16,12 +16,12 @@ class ConversationController extends Controller
             'user_id' => 'required',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 401,
-                'message' => $validator->errors()->first(),
-            ], 401);
-        }
+        // if ($validator->fails()) {
+        //     return response()->json([
+        //         'status' => 401,
+        //         'message' => $validator->errors()->first(),
+        //     ], 401);
+        // }
 
         try {
             $tokens = $this->createToken($request->user_id);
