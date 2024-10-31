@@ -10,19 +10,20 @@ use Twilio\Jwt\Grants\ChatGrant;
 class ConversationController extends Controller
 {
     public function generateToken(Request $request)
-    {
-        // Manually validate using Validator facade to ensure user_id is provided
-        $validator = Validator::make($request->all(), [
-            'user_id' => 'required',
-        ]);
+{
+    // Manually validate using Validator facade to ensure user_id is provided
+    $validator = Validator::make($request->all(), [
+        'user_id' => 'required',
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 401,
-                'message' => $validator->errors()->first(),
-            ], 401);
-        }
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 401,
+            'message' => $validator->errors()->first(),
+        ], 401);
+    }
 
+    try {
         $tokens = $this->createToken($request->user_id);
 
         return response()->json([
@@ -30,34 +31,42 @@ class ConversationController extends Controller
             'message' => 'Token generated',
             'token' => $tokens,
         ], 200);
+    } catch (\Exception $e) {
+
+        return response()->json([
+            'status' => 500,
+            'message' => 'Failed to generate token: ' . $e->getMessage(),
+        ], 500);
     }
+}
 
-    private function createToken($userId)
-    {
+private function createToken($userId)
+{
+    $twilioAccountSid = env('TWILIO_ACCOUNT_SID');
+    $twilioApiKey = env('TWILIO_API_KEY');
+    $twilioApiSecret = env('TWILIO_API_SECRET');
 
-        $twilioAccountSid = env('TWILIO_ACCOUNT_SID');
-        $twilioApiKey = env('TWILIO_API_KEY');
-        $twilioApiSecret = env('TWILIO_API_SECRET');
+    // Required for Chat grant
+    $serviceSid = env('TWILIO_CHAT_SERVICE_SID');
 
-        // Required for Chat grant
-        $serviceSid = env('TWILIO_CHAT_SERVICE_SID');
+    $identity = "user_{$userId}"; // or any unique identifier
 
-        $identity = "user_{$userId}"; // or any unique identifier
+    $token = new AccessToken(
+        $twilioAccountSid,
+        $twilioApiKey,
+        $twilioApiSecret,
+        3600, // Token expiry in seconds
+        $identity
+    );
 
-        $token = new AccessToken(
-            $twilioAccountSid,
-            $twilioApiKey,
-            $twilioApiSecret,
-            3600, // Token expiry in seconds
-            $identity
-        );
-        // Create Chat grant
-        $chatGrant = new ChatGrant;
-        $chatGrant->setServiceSid($serviceSid);
+    // Create Chat grant
+    $chatGrant = new ChatGrant;
+    $chatGrant->setServiceSid($serviceSid);
 
-        $token->addGrant($chatGrant);
+    $token->addGrant($chatGrant);
 
-        // Return the JWT token
-        return $token->toJWT();
-    }
+    // Return the JWT token
+    return $token->toJWT();
+}
+
 }
